@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
 
-    private var lensFacing = CameraSelector.LENS_FACING_FRONT
+    private var lensFacing = CameraSelector.LENS_FACING_BACK
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,38 +77,6 @@ class MainActivity : AppCompatActivity() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
-
-    //FirebaseStorageのインスタンスを取得：
-    //val storage = FirebaseStorage.getInstance()
-
-    //画像の参照を取得：
-    //val storageRef = storage.reference.child("sample.png")
-
-    //画像をimageViewに表示：
-    //val imageView: ImageView = findViewById<ImageView>(R.id.imageView_sample)
-/*    private val uri =Uri
-    storageRef.downloadUrl.addOnSuccessListener { uri ->
-    val bitmap = BitmapFactory.decodeStream(URL(uri.toString()).openStream())
-    imageView.setImageBitmap(bitmap)
-    }  */
-    //上記方法でうまく指定ができない。別方法帆を確認する。
-
-    //Glideを使用して画像表示
-    //GlideApp.with(this)
-    //    .load(strageRef)
-    //    .into(imageView)
-
-// Firebase Storageへの参照を作成します
-//    val storage = Firebase.storage
-//    val storageRef = storage.getReferenceFromUrl("gs://camerax-extention.appspot.com/sample.png")
-
-// 画像をダウンロードし、ImageViewに表示します
-//    storageRef.downloadUrl.addOnSuccessListener { uri ->
-//        val imageView = findViewById<ImageView>(R.id.imageView_sample)
-//        Glide.with(this /* context */)
-//            .load(uri)
-//            .into(imageView)
-//    }
 
     private fun takePhoto() {
         // Get a stable reference of the modifiable image capture use case
@@ -174,10 +142,9 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                     Log.d(TAG, msg)
                 }
+            })
             }
-            }
-        )
-    }
+
 
     private fun captureVideo() {}
 
@@ -220,10 +187,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun changeCamera() {
         // swich camera
-        var lensFacing = if (CameraSelector.LENS_FACING_FRONT == lensFacing) {
-            CameraSelector.LENS_FACING_BACK
-        } else {
+        var lensFacing = if (CameraSelector.LENS_FACING_BACK == lensFacing) {
             CameraSelector.LENS_FACING_FRONT
+        } else {
+            CameraSelector.LENS_FACING_BACK
         }
 
         // retry startCamera()

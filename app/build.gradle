@@ -28,14 +28,14 @@ android {
         }
     }
     compileOptions {
-       sourceCompatibility "1.8"
-       targetCompatibility "1.8"
+       sourceCompatibility "17"
+       targetCompatibility "17"
  // https://issuetracker.google.com/issues/260059413 が修正されたら削除
  //       sourceCompatibility = JavaVersion.VERSION_1_8
   //      targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = "17"
     }
     buildFeatures {
         viewBinding true
@@ -44,7 +44,6 @@ android {
         enabled true
     }
 }
-
 
 dependencies {
     implementation 'androidx.activity:activity-ktx:1.8.2'
@@ -100,3 +99,10 @@ dependencies {
     kapt 'com.github.bumptech.glide:compiler:4.11.0'
 
 }
+/*
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
+    kotlinOptions {
+        // targetCompatibilityと揃える
+        jvmTarget = "1.8"
+    }
+}*/

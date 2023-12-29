@@ -187,7 +187,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun changeCamera() {
         // swich camera
-        var lensFacing = if (CameraSelector.LENS_FACING_BACK == lensFacing) {
+        lensFacing = if (CameraSelector.LENS_FACING_BACK == lensFacing) {
             CameraSelector.LENS_FACING_FRONT
         } else {
             CameraSelector.LENS_FACING_BACK

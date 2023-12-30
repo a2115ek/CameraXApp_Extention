@@ -115,9 +115,14 @@ class MainActivity : AppCompatActivity() {
                     val msg = "Photo capture succeeded: ${output.savedUri}"
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                     Log.d(TAG, msg)
-                }  */
+                }*/
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                val photoFile = File(externalMediaDirs.first(), "${System.currentTimeMillis()}.jpg")
+//                val photoFile = File(externalMediaDirs.first(), "${System.currentTimeMillis()}.jpg")
+                //確認のため手で内部ストレージの場所を入力
+                val photoFile = File("/storage/emulated/0/Pictures/CameraX-Image", "${name}.jpg")
+                //変数でストレージの場所${externalMediaDirs.first()}を入力-＞/storage/emulated/0/Android/media/com.android.example.cameraxapp_extentionと表示された
+                //一旦保存先は手で入力することにする
+//                val photoFile = File("${externalMediaDirs.first()}", "${name}.jpg")
 //                val auth = FirebaseAuth.getInstance()
                 val storage = FirebaseStorage.getInstance()
 
@@ -135,15 +140,19 @@ class MainActivity : AppCompatActivity() {
                     ref.putFile(Uri.fromFile(photoFile))
                         .addOnSuccessListener {
                             // Handle successful upload
-                        }
-
-
-                    val msg = "Photo capture succeeded"
-                    Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
-                    Log.d(TAG, msg)
+                            val ok_msg = "Photo capture and upload succeeded"
+                    Toast.makeText(baseContext, ok_msg, Toast.LENGTH_SHORT).show()
+                    Log.d(TAG, ok_msg)}
+                        .addOnFailureListener {
+                            // Handle failed upload
+                            val ng_msg = "Photo capture and upload failed"
+                            Toast.makeText(baseContext, ng_msg, Toast.LENGTH_SHORT).show()
+                            Log.d(TAG, ng_msg)}
                 }
-            })
             }
+        )
+    }
+
 
 
     private fun captureVideo() {}

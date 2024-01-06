@@ -3,17 +3,12 @@ package com.android.example.cameraxapp_extention
 
 import android.Manifest
 import android.content.ContentValues
-import android.content.ContentValues.TAG
-import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.ContactsContract.CommonDataKinds.Website.URL
 import android.provider.MediaStore
 import android.util.Log
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
@@ -27,20 +22,14 @@ import androidx.camera.video.VideoCapture
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.android.example.cameraxapp_extention.databinding.ActivityMainBinding
-import com.google.android.gms.common.internal.ImagesContract.URL
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.crashlytics.buildtools.reloc.org.apache.http.config.Registry
 import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageReference
-import com.google.firebase.storage.storage
 import java.io.File
-import java.io.InputStream
-import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+
 
 typealias LumaListener = (luma: Double) -> Unit
 
@@ -123,19 +112,29 @@ class MainActivity : AppCompatActivity() {
                 //変数でストレージの場所${externalMediaDirs.first()}を入力-＞/storage/emulated/0/Android/media/com.android.example.cameraxapp_extentionと表示された
                 //一旦保存先は手で入力することにする
 //                val photoFile = File("${externalMediaDirs.first()}", "${name}.jpg")
-//                val auth = FirebaseAuth.getInstance()
                 val storage = FirebaseStorage.getInstance()
-
-/*                val user = auth.currentUser
-                if (user != null) {
-                    val ref = storage.reference.child("images/${user.uid}/${photoFile.name}")
-                    ref.putFile(Uri.fromFile(photoFile))
-                        .addOnSuccessListener {
-                            // Handle successful upload
+                //                val auth = FirebaseAuth.getInstance()
+                //Firebaseへ匿名ログイン
+                FirebaseAuth.getInstance().signInAnonymously()
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            // Sign in success
+                            val user = FirebaseAuth.getInstance().currentUser
+                        } else {
+                            // If sign in fails, display a message to the user.
+                            Log.w(TAG, "signInAnonymously:failure", task.exception)
                         }
-                        .addOnFailureListener {
-                            // Handle failed upload
-                        }*/
+                    }
+                /*                val user = auth.currentUser
+                                if (user != null) {
+                                    val ref = storage.reference.child("images/${user.uid}/${photoFile.name}")
+                                    ref.putFile(Uri.fromFile(photoFile))
+                                        .addOnSuccessListener {
+                                            // Handle successful upload
+                                        }
+                                        .addOnFailureListener {
+                                            // Handle failed upload
+                                        }*/
                     val ref = storage.reference.child("images/${photoFile.name}")
                     ref.putFile(Uri.fromFile(photoFile))
                         .addOnSuccessListener {

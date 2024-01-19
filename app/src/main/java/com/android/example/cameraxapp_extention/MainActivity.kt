@@ -13,6 +13,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.CameraXThreads.TAG
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
@@ -63,15 +64,29 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent) }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+
+        //Firebaseへ匿名ログイン ※アプリ起動時に一度だけ実施すればよいのでここに書く
+        FirebaseAuth.getInstance().signInAnonymously()
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    // Sign in success
+                    val user = FirebaseAuth.getInstance().currentUser
+                } else {
+                    // If sign in fails, display a message to the user.
+                    Log.w(TAG, "signInAnonymously:failure", task.exception)
+                }
+            }
     }
 
+    internal val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
+        .format(System.currentTimeMillis())
     private fun takePhoto() {
         // Get a stable reference of the modifiable image capture use case
         val imageCapture = imageCapture ?: return
 
         // Create time stamped name and MediaStore entry.
-        val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
-            .format(System.currentTimeMillis())
+        //val name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
+        //    .format(System.currentTimeMillis())
         val contentValues = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
             put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
@@ -106,14 +121,14 @@ class MainActivity : AppCompatActivity() {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
 //                val photoFile = File(externalMediaDirs.first(), "${System.currentTimeMillis()}.jpg")
                 //確認のため手で内部ストレージの場所を入力
-                val photoFile = File("/storage/emulated/0/Pictures/CameraX-Image", "${name}.jpg")
+               val photoFile = File("/storage/emulated/0/Pictures/CameraX-Image", "${name}.jpg")
                 //変数でストレージの場所${externalMediaDirs.first()}を入力-＞/storage/emulated/0/Android/media/com.android.example.cameraxapp_extentionと表示された
                 //一旦保存先は手で入力することにする
 //                val photoFile = File("${externalMediaDirs.first()}", "${name}.jpg")
                 val storage = FirebaseStorage.getInstance()
                 //                val auth = FirebaseAuth.getInstance()
                 //Firebaseへ匿名ログイン
-                FirebaseAuth.getInstance().signInAnonymously()
+                /* FirebaseAuth.getInstance().signInAnonymously()
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
                             // Sign in success
@@ -122,17 +137,7 @@ class MainActivity : AppCompatActivity() {
                             // If sign in fails, display a message to the user.
                             Log.w(TAG, "signInAnonymously:failure", task.exception)
                         }
-                    }
-                /*                val user = auth.currentUser
-                                if (user != null) {
-                                    val ref = storage.reference.child("images/${user.uid}/${photoFile.name}")
-                                    ref.putFile(Uri.fromFile(photoFile))
-                                        .addOnSuccessListener {
-                                            // Handle successful upload
-                                        }
-                                        .addOnFailureListener {
-                                            // Handle failed upload
-                                        }*/
+                    } */
                     val ref = storage.reference.child("images/${photoFile.name}")
                     ref.putFile(Uri.fromFile(photoFile))
                         .addOnSuccessListener {
@@ -145,10 +150,18 @@ class MainActivity : AppCompatActivity() {
                             val ng_msg = "Photo capture and upload failed"
                             Toast.makeText(baseContext, ng_msg, Toast.LENGTH_SHORT).show()
                             Log.d(TAG, ng_msg)}
+
+
+                val savedUri = outputFileResults.savedUri ?: Uri.fromFile(photoFile)
+                // ここで新しいアクティビティを開始し、画像のURIを渡す
+                val intent = Intent(this@MainActivity, NextPageActivity::class.java).apply {
+                    putExtra("image_uri", savedUri.toString())
                 }
+                startActivity(intent)
             }
-        )
-    }
+                })
+            }
+
 
 
 

@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.graphics.drawable.BitmapDrawable
+import android.icu.text.SimpleDateFormat
 import android.media.ExifInterface
 import android.net.Uri
 import android.os.Build
@@ -24,10 +25,14 @@ import com.android.example.cameraxapp_extention.databinding.ChooseImageAndUpBind
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.TransformationUtils.rotateImage
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.crashlytics.buildtools.reloc.org.apache.commons.io.output.ByteArrayOutputStream
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
+import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.io.IOException
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.CountDownLatch
 
 class NextPageActivity : AppCompatActivity() {
@@ -50,17 +55,6 @@ class NextPageActivity : AppCompatActivity() {
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                 if (result.resultCode == Activity.RESULT_OK) {
                     val data: Intent? = result.data
-
-                    /*        data?.data?.also { uri ->
-                                try {
-                                    val inputStream = contentResolver?.openInputStream(uri)
-                                    val image = BitmapFactory.decodeStream(inputStream)
-                                    selected_View = findViewById<ImageView>(R.id.selected_View)
-                                    selected_View.setImageBitmap(image)
-                                } catch (e: Exception) {
-                                    Toast.makeText(this, "エラーが発生しました", Toast.LENGTH_LONG).show()
-                                }
-                            }  */
 
                     data?.data?.also { uri ->
                         try {
@@ -93,6 +87,7 @@ class NextPageActivity : AppCompatActivity() {
             }
         // Intentから画像のURIを取得
         val imageUri = intent.getStringExtra("image_uri")?.let { Uri.parse(it) }
+        Log.d(TAG, "val imageUri = ${imageUri}")
         if (imageUri != null) {
             // URIから画像をImageViewに表示
             selected_View = findViewById<ImageView>(R.id.selected_View)
@@ -103,9 +98,12 @@ class NextPageActivity : AppCompatActivity() {
         viewBinding.chooseImageButton.setOnClickListener { chooseImage() }
         viewBinding.cameraButton.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
+            Log.d(TAG, "val imageUri = ${intent}")
             startActivity(intent)
         }
-        viewBinding.uploadButton.setOnClickListener { uploadImage() }
+        viewBinding.uploadButton.setOnClickListener {
+            uploadImage()
+        }
         viewBinding.rotateButton.setOnClickListener {
             // 現在ImageViewに表示されているBitmapを取得
             val imageView = findViewById<ImageView>(R.id.selected_View)
@@ -118,11 +116,11 @@ class NextPageActivity : AppCompatActivity() {
                 imageView.setImageBitmap(rotatedBitmap)
             }
         }
-
-       //deleteImage()
+        //Firebase Storage上のアップロード時刻が最新の画像を表示する
         previewStorageImage()
     }
 
+    //画像を90度時計回りに回転させる（rotate_button用の処理）
     private fun rotateImage(source: Bitmap, angle: Float): Bitmap {
         val matrix = Matrix()
         matrix.postRotate(angle)
@@ -140,17 +138,6 @@ class NextPageActivity : AppCompatActivity() {
 
     //選択画像をリネームしてアップロードする。アップロード先に先にあるファイルは削除する。（準備中）
     private fun uploadImage() {
-        //Firebaseへ匿名ログイン ※アプリ起動時に一度だけ実施すればよい
-        FirebaseAuth.getInstance().signInAnonymously()
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    // Sign in success
-                    val user = FirebaseAuth.getInstance().currentUser
-                } else {
-                    // If sign in fails, display a message to the user.
-                    Log.w(NextPageActivity.TAG, "signInAnonymously:failure", task.exception)
-                }
-            }
         //ContentResolverを使ってファイルパスの取得
         fun getRealPathFromUri(contentUri: Uri, context: Context): String? {
             var cursor: Cursor? = null
@@ -166,9 +153,28 @@ class NextPageActivity : AppCompatActivity() {
             }
         }
 
+        // Bitmap を Uri に変換する.ファイル名はタイムスタンプを指定。
+        fun getImageUriFromBitmap(bitmap: Bitmap): Uri {
+            val bytes = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes)
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "image_$timestamp.jpg"
+            val path = MediaStore.Images.Media.insertImage(contentResolver, bitmap, fileName, null)
+            return Uri.parse(path)
+        }
+        /*
+        //Bitmap を Uri に変換する
+        fun getImageUriFromBitmap(bitmap: Bitmap): Uri {
+            val bytes = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes)
+            val path = MediaStore.Images.Media.insertImage(contentResolver, bitmap, "Title", null)
+            return Uri.parse(path)
+        } */
+
         //intentに設定している画像のuriを取得
-        val imageUri_now: Uri? = intent.getStringExtra("imageUri_now")?.let { Uri.parse(it) }
-        Log.d(TAG, "val imageUri_now")
+        Log.d(TAG, "val intent = ${intent}")
+        val imageUri_now = (findViewById<ImageView>(R.id.selected_View).drawable as? BitmapDrawable)?.bitmap?.let { getImageUriFromBitmap(it) }
+        Log.d(TAG, "val imageUri_now = ${imageUri_now}")
         if (imageUri_now != null) {
             //imageUri_nowを使用して変数photoFileを設定する
             imageUri_now?.let { uri ->
@@ -179,23 +185,25 @@ class NextPageActivity : AppCompatActivity() {
                     Log.d(TAG, "val photoFile")
                     val ref = storage.reference.child("images/${photoFile.name}")
                     Log.d(TAG, "val ref")
-            ref.putFile(Uri.fromFile(photoFile))
-                .addOnSuccessListener {
-                    // Handle successful upload
-                    val ok_msg = "Photo upload succeeded"
-                    Toast.makeText(baseContext, ok_msg, Toast.LENGTH_SHORT).show()
-                    Log.d(NextPageActivity.TAG, ok_msg)
-                }
-                .addOnFailureListener {
-                    // Handle failed upload
-                    val ng_msg = "Photo upload failed"
-                    Toast.makeText(baseContext, ng_msg, Toast.LENGTH_SHORT).show()
-                    Log.d(NextPageActivity.TAG, ng_msg)
-                    }
+                    ref.putFile(Uri.fromFile(photoFile))
+                        .addOnSuccessListener {
+                            // Handle successful upload
+                            val ok_msg = "Photo upload succeeded"
+                            Toast.makeText(baseContext, ok_msg, Toast.LENGTH_SHORT).show()
+                            Log.d(NextPageActivity.TAG, ok_msg)
+                            previewStorageImage()
+                        }
+                        .addOnFailureListener {
+                            // Handle failed upload
+                            val ng_msg = "Photo upload failed"
+                            Toast.makeText(baseContext, ng_msg, Toast.LENGTH_SHORT).show()
+                            Log.d(NextPageActivity.TAG, ng_msg)
+                            previewStorageImage()
+                        }
                 }
             }
         }else{
-            Log.d(TAG, "imageUri_now = null")
+            Log.d(TAG, "imageUri_now")
         }
     }
 
@@ -225,8 +233,8 @@ class NextPageActivity : AppCompatActivity() {
         imagesRef.listAll().addOnSuccessListener { listResult ->
             Log.d(TAG, "imagesRef.listAll()成功: ")
             val items = listResult.items
+            Log.d(TAG, "findLatestImage(items)実行")
             findLatestImage(items)
-            Log.d(TAG, "findLatestImage(items)")
         }.addOnFailureListener { exception ->
             Log.e(TAG, "imagesRef.listAll()失敗: ", exception)
         }
@@ -236,28 +244,39 @@ class NextPageActivity : AppCompatActivity() {
     private fun findLatestImage(items: List<StorageReference>) {
         var latestTimestamp = Long.MIN_VALUE
         var latestImageRef: StorageReference? = null
+        var countDown = items.size
 
-        // 同期処理を排除し、最新の画像が見つかったら直接UIを更新
         for (item in items) {
             item.metadata.addOnSuccessListener { metadata ->
-                Log.d(TAG, "item.metadata 成功: ")
+                Log.d(TAG, "item.metadata 成功:items.size=${countDown} ")
                 val updatedTime = metadata.updatedTimeMillis
                 if (updatedTime > latestTimestamp) {
-                    Log.d(TAG, "updatedTime > latestTimestamp")
+                    Log.d(TAG, "${updatedTime} > ${latestTimestamp}")
                     latestTimestamp = updatedTime
                     latestImageRef = item
-                    // 最新の画像が更新されたら、その画像をロード
-                    loadImageIntoView(latestImageRef)
-                    Log.d(TAG, "loadImageIntoView(latestImageRef)")
-                }else{
+                    Log.d(TAG, "latestTimestamp is updated.")
+                } else {
                     Log.d(TAG, "updatedTime > latestTimestamp でエラー: ")
                 }
-            }.addOnFailureListener {exception ->
+
+                countDown--
+                if (countDown == 0) {
+                    // すべての非同期処理が完了したら、最新の画像をロード
+                    Log.d(TAG, "loadImageIntoView(latestImageRef)")
+                    loadImageIntoView(latestImageRef)
+                }
+            }.addOnFailureListener { exception ->
                 Log.e(TAG, "item.metadata 失敗: ", exception)
+                countDown--
+                if (countDown == 0) {
+                    // すべての非同期処理が完了したら、最新の画像をロード
+                    Log.d(TAG, "loadImageIntoView(latestImageRef)")
+                    loadImageIntoView(latestImageRef)
+                }
             }
         }
     }
-
+    //変数latestImageRefで指定した画像をビューに表示させる
     fun loadImageIntoView(imageRef: StorageReference?) {
         imageRef?.downloadUrl?.addOnSuccessListener { uri ->
             val localFile = File.createTempFile("images", "jpg")

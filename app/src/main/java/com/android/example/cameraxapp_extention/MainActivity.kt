@@ -70,6 +70,7 @@ class MainActivity : AppCompatActivity() {
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     // Sign in success
+                    Log.e(TAG, "signInAnonymously:successful")
                     val user = FirebaseAuth.getInstance().currentUser
                 } else {
                     // If sign in fails, display a message to the user.
@@ -125,7 +126,7 @@ class MainActivity : AppCompatActivity() {
                 //変数でストレージの場所${externalMediaDirs.first()}を入力-＞/storage/emulated/0/Android/media/com.android.example.cameraxapp_extentionと表示された
                 //一旦保存先は手で入力することにする
 //                val photoFile = File("${externalMediaDirs.first()}", "${name}.jpg")
-                val storage = FirebaseStorage.getInstance()
+/*                val storage = FirebaseStorage.getInstance()
                 //                val auth = FirebaseAuth.getInstance()
                 //Firebaseへ匿名ログイン
                 /* FirebaseAuth.getInstance().signInAnonymously()
@@ -149,7 +150,7 @@ class MainActivity : AppCompatActivity() {
                             // Handle failed upload
                             val ng_msg = "Photo capture and upload failed"
                             Toast.makeText(baseContext, ng_msg, Toast.LENGTH_SHORT).show()
-                            Log.d(TAG, ng_msg)}
+                            Log.d(TAG, ng_msg)}  */
 
 
                 val savedUri = outputFileResults.savedUri ?: Uri.fromFile(photoFile)
@@ -242,7 +243,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val TAG = "CameraXApp"
+        private const val TAG = "CameraXApp-Extention"
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS =
